@@ -42,3 +42,5 @@ for d in df_data:
     token_6.append(re.sub(r'[^://@]', '', d.lower()))
 
 
+data = [np.array([token_1[i], token_2[i], token_3[i], token_4[i], token_5[i], token_6[i]]) for i in range(len(df_data))]
+
