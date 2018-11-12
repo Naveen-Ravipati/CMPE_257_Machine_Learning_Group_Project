@@ -34,8 +34,11 @@ token_5 = []
 token_6 = []
 
 for d in df_data:
-    token_1.append(re.sub('[^A-Za-z]+', '', d))
+    token_1.append(re.sub('[^A-Za-z]+', '', d.lower()))
     token_2.append(d.count('$'))
-    token_3.append(re.sub('[^0-9]+', '', d))
+    token_3.append(re.sub('[^0-9]+', '', d.lower()))
     token_4.append(len(d))
     token_5.append(char_flag(len(d)))
+    token_6.append(re.sub(r'[^://@]', '', d.lower()))
+
+
