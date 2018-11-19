@@ -4,12 +4,15 @@
 import numpy as np
 import pandas as pd
 import re
+import matplotlib.pyplot as plt
+import string
+from nltk.corpus import stopwords
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
+from scipy.sparse import csr_matrix
 from sklearn import svm
-from sklearn.metrics import accuracy_score,confusion_matrix,classification_report
-import scikitplot as skplt
-import matplotlib.pyplot as plt
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+
 
 def char_flag(l):
     if l <= 40:
@@ -25,55 +28,76 @@ def char_flag(l):
     else:
         return 6
 
-df = pd.read_csv("spam.csv", encoding='latin-1')
-df = df.drop(columns=['Unnamed: 2', 'Unnamed: 3', 'Unnamed: 4'])
 
-df_data = df['v2']
+def preprocessing_text():
+    for d, ln in zip(messages_data, token_4):
+        token_1.append(d)
+        token_2.append(d.count('$'))
+        x = re.sub('[^0-9 ]+', '', d.lower())
+        token_3.append(len(x))
+        token_5.append(char_flag(ln))
+        if (re.sub(r'[^://@]', '', d.lower())) is not '':
+            token_6.append(1)
+        else:
+            token_6.append(0)
+
+
+    # y = messages_data.apply(text_process)
+    # print(y.head(5))
+
+    return np.array(
+        [np.array([token_1[i], token_2[i], token_3[i], token_4[i], token_5[i], token_6[i]], dtype=object) for i in
+         range(len(messages_data))])
+
+
+def text_process(mess):
+    no_punct = re.sub('[^A-Za-z ]+', '', mess.lower())
+    return np.array([word for word in no_punct.split() if word not in stopwords.words('english')])
+
+
+messages = pd.read_csv("spam.csv", encoding='latin-1')
+messages = messages.drop(columns=['Unnamed: 2', 'Unnamed: 3', 'Unnamed: 4'])
+
+print(messages.head(5))
+messages_labels = messages['v1']
+messages['length'] = messages['v2'].apply(len)
+messages_data = messages['v2']
 
 token_1 = []
 token_2 = []
 token_3 = []
-token_4 = []
+token_4 = messages['length']
 token_5 = []
 token_6 = []
 
-for d in df_data:
-    token_1.append(re.sub('[^A-Za-z]+', '', d.lower()))
-    token_2.append(d.count('$'))
-    x = re.sub('[^0-9]+', '', d.lower())
-    token_3.append(len(x))
-    token_4.append(len(d))
-    token_5.append(char_flag(len(d)))
-    y = re.sub(r'[^://@]', '', d.lower())
-    token_6.append(y != '')
+
+data = preprocessing_text()
+
+trainset, testset, trainlabel, testlabel = train_test_split(data, messages_labels, test_size=0.33, random_state=42)
 
 
-data = [np.array([token_2[i], token_3[i], token_4[i], token_5[i], token_6[i]]) for i in range(len(df_data))]
-df_labels = df['v1']
-trainset, testset, trainlabel, testlabel = train_test_split(data, df_labels, test_size=0.33, random_state=42)
-print(len(trainset))
-print(len(trainlabel))
-print(len(testset))
-print(testlabel)
-#countvect= CountVectorizer()
-#x_counts = countvect.fit(trainset.v2)
-#preparing for training set
-#x_train_df =countvect.transform(trainset.v2)
-#a = x_train_df.toarray()
-#print(x_train_df.toarray())
-#print(a[1][257])
-#print(x_train_df.shape)
-#preparing for test set
-#x_test_df = countvect.transform(testset.v2)
+count_vect = CountVectorizer(analyzer=text_process)
 
-        
+x_counts = count_vect.fit(trainset[:, 0])
+
+x_int = count_vect.transform(trainset[:, 0])
+'''for t, i in zip(x_int, range(len(trainset))):
+    trainset[i, 0] = t.indices
+
+
+x_int = count_vect.transform(testset[:, 0])
+for t, i in zip(x_int, range(len(testset))):
+    testset[i, 0] = t.indices
+
+print(type(trainset))'''
+trainset[:, 0] = x_int
+x_int = count_vect.transform(testset[:, 0])
+testset[:, 0] = x_int
+
+
 SVM = svm.SVC()
-SVM.fit(trainset,trainlabel)
-predicted_values_svm=SVM.predict(testset)
+SVM.fit(csr_matrix(trainset), trainlabel)
+predicted_values_svm = SVM.predict(testset)
 print(predicted_values_svm)
-acurracy_SVM = accuracy_score(testlabel,predicted_values_svm)
-print("acurracy_SVM " +str(acurracy_SVM))
-confusion_matrix_SVM = confusion_matrix(testlabel,predicted_values_svm,labels=["spam", "ham"])
-print(confusion_matrix_SVM)
-skplt.metrics.plot_confusion_matrix(testlabel,predicted_values_svm, normalize=True)
-plt.show()
+acurracy_SVM = accuracy_score(testlabel, predicted_values_svm)
+print("acurracy_SVM " + str(acurracy_SVM))
