@@ -1,15 +1,15 @@
 # SVM and Random Forest
 # Team Project
 
+from sklearn_pandas import DataFrameMapper
 import numpy as np
 import pandas as pd
 import re
 import matplotlib.pyplot as plt
-import string
 from nltk.corpus import stopwords
 from sklearn.model_selection import train_test_split
-from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
-from scipy.sparse import csr_matrix
+from sklearn.feature_extraction.text import CountVectorizer
+import scikitplot as skplt
 from sklearn import svm
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 
@@ -40,13 +40,10 @@ def preprocessing_text():
             token_6.append(1)
         else:
             token_6.append(0)
-
-
-    # y = messages_data.apply(text_process)
-    # print(y.head(5))
-
+        token_7.append(len(x.split()))
     return np.array(
-        [np.array([token_1[i], token_2[i], token_3[i], token_4[i], token_5[i], token_6[i]], dtype=object) for i in
+        [np.array([token_1[i], token_2[i], token_3[i], token_4[i], token_5[i], token_6[i], token_7[i]], dtype=object)
+         for i in
          range(len(messages_data))])
 
 
@@ -55,49 +52,42 @@ def text_process(mess):
     return np.array([word for word in no_punct.split() if word not in stopwords.words('english')])
 
 
-messages = pd.read_csv("spam.csv", encoding='latin-1')
-messages = messages.drop(columns=['Unnamed: 2', 'Unnamed: 3', 'Unnamed: 4'])
-
-print(messages.head(5))
-messages_labels = messages['v1']
-messages['length'] = messages['v2'].apply(len)
-messages_data = messages['v2']
-
-token_1 = []
-token_2 = []
-token_3 = []
-token_4 = messages['length']
-token_5 = []
-token_6 = []
+def svm_fit():
+    SVM = svm.SVC()
+    SVM.fit(trainset, trainlabel)
+    predicted_values_svm = SVM.predict(testset)
+    print(predicted_values_svm)
+    acurracy_SVM = accuracy_score(testlabel, predicted_values_svm)
+    print("acurracy_SVM " + str(acurracy_SVM))
+    confusion_matrix_SVM = confusion_matrix(testlabel,predicted_values_svm,labels=["ham","spam"] )
+    print(confusion_matrix_SVM)
+    skplt.metrics.plot_confusion_matrix(testlabel,predicted_values_svm, normalize=True)
+    plt.show()
 
 
-data = preprocessing_text()
+if __name__ == "__main__":
+    messages = pd.read_csv("spam.csv", encoding='latin-1')
+    messages = messages.drop(columns=['Unnamed: 2', 'Unnamed: 3', 'Unnamed: 4'])
 
-trainset, testset, trainlabel, testlabel = train_test_split(data, messages_labels, test_size=0.33, random_state=42)
+    print(messages.head(5))
+    messages_labels = messages['v1']
+    messages['length'] = messages['v2'].apply(len)
+    messages_data = messages['v2']
 
+    token_1 = []
+    token_2 = []
+    token_3 = []
+    token_4 = messages['length']
+    token_5 = []
+    token_6 = []
+    token_7 = []
 
-count_vect = CountVectorizer(analyzer=text_process)
-
-x_counts = count_vect.fit(trainset[:, 0])
-
-x_int = count_vect.transform(trainset[:, 0])
-'''for t, i in zip(x_int, range(len(trainset))):
-    trainset[i, 0] = t.indices
-
-
-x_int = count_vect.transform(testset[:, 0])
-for t, i in zip(x_int, range(len(testset))):
-    testset[i, 0] = t.indices
-
-print(type(trainset))'''
-trainset[:, 0] = x_int
-x_int = count_vect.transform(testset[:, 0])
-testset[:, 0] = x_int
-
-
-SVM = svm.SVC()
-SVM.fit(csr_matrix(trainset), trainlabel)
-predicted_values_svm = SVM.predict(testset)
-print(predicted_values_svm)
-acurracy_SVM = accuracy_score(testlabel, predicted_values_svm)
-print("acurracy_SVM " + str(acurracy_SVM))
+    data = preprocessing_text()
+    labels = ['message','f1','f2','f3','f4','f5','f6']
+    df = pd.DataFrame.from_records(data,columns=labels)
+    mapper = DataFrameMapper([
+    (['f1', 'f2','f3','f4','f5','f6'], None),
+    ('message',CountVectorizer(analyzer = text_process,ngram_range=(2, 2)))])
+    X=mapper.fit_transform(df)
+    trainset, testset, trainlabel, testlabel = train_test_split(X, messages_labels, test_size=0.33, random_state=42)
+    svm_fit()
