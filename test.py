@@ -1,6 +1,7 @@
 # SVM and Random Forest
 # Team Project
 
+from sklearn_pandas import DataFrameMapper
 import numpy as np
 import pandas as pd
 import re
@@ -10,6 +11,7 @@ from nltk.corpus import stopwords
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from scipy.sparse import csr_matrix
+import scikitplot as skplt
 from sklearn import svm
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 
@@ -66,31 +68,31 @@ if __name__ == "__main__":
     token_4 = messages['length']
     token_5 = []
     token_6 = []
-
+    
+    count_vect = CountVectorizer()
+    x_counts = count_vect.fit(messages_data)
+    x_int = count_vect.transform(messages_data)   
+    x_int = list(x_int)
+    
     data = preprocessing_text()
-    trainset, testset, trainlabel, testlabel = train_test_split(data, messages_labels, test_size=0.33, random_state=42)
-    count_vect = CountVectorizer(analyzer=text_process)
+    labels = ['message','f1','f2','f3','f4','f5']
+    df = pd.DataFrame.from_records(data,columns=labels)
+    mapper = DataFrameMapper([
+    (['f1', 'f2','f3','f4','f5'], None),
+    ('message',CountVectorizer(binary=True, ngram_range=(1, 2)))                          ])
+    X=mapper.fit_transform(df)
+    print("X "+str(X))
+    print("X "+str(X.shape))
+    trainset, testset, trainlabel, testlabel = train_test_split(X, messages_labels, test_size=0.33, random_state=42)
 
-    x_counts = count_vect.fit(trainset[:, 0])
-
-    x_int = count_vect.transform(trainset[:, 0])
-    '''for t, i in zip(x_int, range(len(trainset))):
-        trainset[i, 0] = t.indices
-    
-    
-    x_int = count_vect.transform(testset[:, 0])
-    for t, i in zip(x_int, range(len(testset))):
-        testset[i, 0] = t.indices
-    
-    print(type(trainset))'''
-
-    trainset[:, 0] = x_int
-    x_int = count_vect.transform(testset[:, 0])
-    testset[:, 0] = x_int
 
     SVM = svm.SVC()
-    SVM.fit(csr_matrix(trainset), trainlabel)
+    SVM.fit(trainset, trainlabel)
     predicted_values_svm = SVM.predict(testset)
     print(predicted_values_svm)
     acurracy_SVM = accuracy_score(testlabel, predicted_values_svm)
     print("acurracy_SVM " + str(acurracy_SVM))
+    confusion_matrix_SVM = confusion_matrix(testlabel,predicted_values_svm,labels=["spam", "ham"])
+    print(confusion_matrix_SVM)
+    skplt.metrics.plot_confusion_matrix(testlabel,predicted_values_svm, normalize=True)
+    plt.show()
