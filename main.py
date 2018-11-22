@@ -89,5 +89,6 @@ if __name__ == "__main__":
     (['f1', 'f2','f3','f4','f5','f6'], None),
     ('message',CountVectorizer(analyzer = text_process,ngram_range=(2, 2)))])
     X=mapper.fit_transform(df)
+    print(X[0])
     trainset, testset, trainlabel, testlabel = train_test_split(X, messages_labels, test_size=0.33, random_state=42)
     svm_fit()
