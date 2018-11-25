@@ -66,7 +66,7 @@ def text_process(mess):
 
 
 def svm_fit():
-    SVM = svm.SVC(gamma='scalar')
+    SVM = svm.SVC()
     SVM.fit(trainset, trainlabel)
     predicted_values_svm = SVM.predict(testset)
     print(predicted_values_svm)
